@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Clock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+    }
+    .digital-clock {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .analog-clock {
+      width: 200px;
+      height: 200px;
+      border: 6px solid #fff;
+      border-radius: 50%;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom;
+      transform: rotate(0deg);
+    }
+    .hour { width: 6px; height: 50px; background: #f00; }
+    .minute { width: 4px; height: 70px; background: #0f0; }
+    .second { width: 2px; height: 80px; background: #00f; }
+
+    .trend-label {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      opacity: 0;
+      transition: opacity 0.5s ease, color 0.5s ease;
+    }
+    .trend-label.active { opacity: 1; }
+
+    .clock-legend {
+      margin-bottom: 20px;
+    }
+    .clock-legend div {
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .toggle-sound {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div style="display: flex; align-items: flex-start; gap: 40px; justify-content: flex-start;">
+    <div>
+      <div id="digitalClock" class="digital-clock">--:--:--</div>
+      <div class="clock-legend" id="clockLegend"></div>
+    </div>
+    <div>
+      <div class="analog-clock" id="analogClock" style="border: 6px solid transparent;">
+        <svg width="200" height="200" style="position:absolute; top:0; left:0;">
+          <g id="clockNumbers" font-size="14" fill="#fff" text-anchor="middle">
+            <text x="100" y="20">12</text>
+            <text x="135" y="32">1</text>
+            <text x="165" y="60">2</text>
+            <text x="178" y="100">3</text>
+            <text x="165" y="140">4</text>
+            <text x="135" y="170">5</text>
+            <text x="100" y="182">6</text>
+            <text x="65" y="170">7</text>
+            <text x="35" y="140">8</text>
+            <text x="22" y="100">9</text>
+            <text x="35" y="60">10</text>
+            <text x="65" y="32">11</text>
+          </g>
+        </svg>
+        <div class="hand hour" id="hourHand"></div>
+        <div class="hand minute" id="minuteHand"></div>
+        <div class="hand second" id="secondHand"></div>
+        <div id="trendLabelDisplay" style="text-align:center; color:#fff; font-weight:bold; margin-top:210px; font-size:16px;">&nbsp;</div>
+      </div>
+      <div id="currentTrend" class="trend-label">Current Trend: --</div>
+    </div>
+  </div>
+  <div id="barContainer" style="display:flex; flex-direction: column; gap: 10px; margin: 20px 0;"></div>
+  <div class="toggle-sound">
+    <input type="checkbox" id="toggleSound" checked>
+    <label for="toggleSound">Enable Voice Cues</label>
+  </div>
+
+<script>
+const customTimes = [
+  [570, 600], [600, 630], [630, 660], [660, 690],
+  [690, 810], [810, 930], [930, 950], [950, 960]
+];
+const trendNames = [
+  'Amateur Trading', 'Trend Time', 'Trending Continuation',
+  'Heading to Lunch', 'Lunch / Midday Breakout',
+  'Shakeout Time', 'Closing Positions', 'Imbalance Trading'
+];
+
+let lastAnnounced = -1;
+function speakTrend(trend) {
+  if (!document.getElementById('toggleSound').checked) return;
+  const msg = new SpeechSynthesisUtterance(trend);
+  msg.rate = 0.9;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(msg);
+}
+
+function updateClock(mockTime = new Date()) {
+  const container = document.getElementById('barContainer');
+  container.innerHTML = '';
+  const marketStart = 570;
+  const currentMinute = mockTime.getHours() * 60 + mockTime.getMinutes();
+  const interval = 10;
+  const barIndex = Math.floor((currentMinute - marketStart) / interval);
+
+  for (let g = 0; g < customTimes.length; g++) {
+    const [startMin, endMin] = customTimes[g];
+    const label = document.createElement('input');
+    label.className = 'editable-label';
+    label.value = `${trendNames[g]} (${formatTime(startMin)} - ${formatTime(endMin)})`;
+    label.title = 'Click to edit';
+    label.style.cssText = 'margin: 4px 0; background: #222; border: 1px solid #444; color: #fff; padding: 6px 8px; border-radius: 4px; font-size: 15px; display: block;';
+
+    const groupDiv = document.createElement('div');
+    const barRow = document.createElement('div');
+    barRow.style.cssText = 'display: flex; flex-direction: row; gap: 4px; flex-wrap: wrap;';
+
+    const barsInGroup = Math.floor((endMin - startMin) / interval);
+    for (let i = 0; i < barsInGroup; i++) {
+      const barNumber = Math.floor((startMin - marketStart) / interval) + i;
+      const bar = document.createElement('div');
+      bar.style.width = '20px';
+      bar.style.height = '8px';
+      bar.style.borderRadius = '3px';
+      bar.style.background = '#333';
+      bar.style.position = 'relative';
+
+      if (barNumber === barIndex) {
+        const fill = document.createElement('div');
+        const minElapsed = (currentMinute - marketStart) % interval;
+        const fillWidth = (minElapsed / interval) * 100;
+        fill.style.width = `${fillWidth}%`;
+        fill.style.height = '100%';
+        fill.style.borderRadius = '3px';
+        fill.style.background = 'limegreen';
+        fill.style.transition = 'width 0.5s ease-out';
+        fill.style.position = 'absolute';
+        bar.appendChild(fill);
+
+        const countdown = document.createElement('div');
+        countdown.textContent = `${interval - minElapsed} min`;
+        countdown.style.fontSize = '10px';
+        countdown.style.color = '#ccc';
+        countdown.style.textAlign = 'center';
+        countdown.style.marginTop = '2px';
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.alignItems = 'center';
+        wrapper.appendChild(bar);
+        wrapper.appendChild(countdown);
+        barRow.appendChild(wrapper);
+      } else {
+        const fill = document.createElement('div');
+        fill.style.width = '100%';
+        fill.style.height = '100%';
+        fill.style.borderRadius = '3px';
+        fill.style.background = barNumber < barIndex ? 'limegreen' : '#333';
+        fill.style.position = 'absolute';
+        bar.appendChild(fill);
+        barRow.appendChild(bar);
+      }
+    }
+    groupDiv.appendChild(label);
+    groupDiv.appendChild(barRow);
+    container.appendChild(groupDiv);
+  }
+
+  document.getElementById('digitalClock').textContent = mockTime.toLocaleTimeString();
+  document.getElementById('hourHand').style.transform = `rotate(${(mockTime.getHours() % 12) * 30 + mockTime.getMinutes() / 2}deg)`;
+  document.getElementById('minuteHand').style.transform = `rotate(${mockTime.getMinutes() * 6}deg)`;
+  document.getElementById('secondHand').style.transform = `rotate(${mockTime.getSeconds() * 6}deg)`;
+}
+
+function formatTime(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
+let demoMinute = 570;
+setInterval(() => {
+  updateClockLegend();
+  const mock = new Date();
+  mock.setHours(Math.floor(demoMinute / 60));
+  mock.setMinutes(demoMinute % 60);
+  mock.setSeconds(0);
+  const groupIndex = customTimes.findIndex(([start, end]) => demoMinute >= start && demoMinute < end);
+  const clock = document.getElementById('analogClock');
+  const trendColors = ['#00c0ff','#00ff90','#00ff40','#ffc040','#ff40a0','#c040ff','#ff4040','#ff8040'];
+  clock.style.borderColor = trendColors[groupIndex] || '#fff';
+  document.getElementById('trendLabelDisplay').textContent = trendNames[groupIndex] || '';
+  document.getElementById('currentTrend').textContent = `Current Trend: ${trendNames[groupIndex] || '--'}`;
+  if (groupIndex !== lastAnnounced && trendNames[groupIndex]) {
+    lastAnnounced = groupIndex;
+    speakTrend(trendNames[groupIndex]);
+  }
+  updateClock(mock);
+  demoMinute++;
+  if (demoMinute >= 960) demoMinute = 570;
+}, 1000);
+
+function updateClockLegend() {
+  const legend = document.getElementById('clockLegend');
+  legend.innerHTML = '';
+  trendNames.forEach((name, i) => {
+    const color = ['#00c0ff','#00ff90','#00ff40','#ffc040','#ff40a0','#c040ff','#ff4040','#ff8040'][i];
+    const entry = document.createElement('div');
+    const dot = document.createElement('div');
+    dot.className = 'legend-color';
+    dot.style.backgroundColor = color;
+    const label = document.createElement('span');
+    label.textContent = name;
+    entry.appendChild(dot);
+    entry.appendChild(label);
+    legend.appendChild(entry);
+  });
+}
+</script>
+</body>
+</html>
