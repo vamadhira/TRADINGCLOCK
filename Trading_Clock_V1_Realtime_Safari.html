@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Clock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+    }
+    .digital-clock {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .analog-clock {
+      width: 200px;
+      height: 200px;
+      border: 6px solid #fff;
+      border-radius: 50%;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom;
+      transform: rotate(0deg);
+    }
+    .hour { width: 6px; height: 50px; background: #f00; }
+    .minute { width: 4px; height: 70px; background: #0f0; }
+    .second { width: 2px; height: 80px; background: #00f; }
+
+    .trend-label {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      opacity: 0;
+      transition: opacity 0.5s ease, color 0.5s ease;
+    }
+    .trend-label.active { opacity: 1; }
+
+    .clock-legend {
+      margin-bottom: 20px;
+    }
+    .clock-legend div {
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .toggle-sound {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<!-- Truncated: the full code continues in the next cell -->
